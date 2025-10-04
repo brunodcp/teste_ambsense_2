@@ -29,14 +29,14 @@ void FazerLeituraSensores() {
         String(objComponente_TesteConexao_controller.TempoMedio()), 
         "", objDispositivo_controller.IPLocal(), DataHora_utils::Agora()
         );
-      objComponente_TesteConexao_controller.AdicionarLeitura("PTM", objLeitura);
+      //objComponente_TesteConexao_controller.AdicionarLeitura("PTM", objLeitura);
 
       // PPF
       objLeitura = Leitura(
         String(objComponente_TesteConexao_controller.PercentFalha()), 
         "", objDispositivo_controller.IPLocal(), DataHora_utils::Agora()
         );
-      objComponente_TesteConexao_controller.AdicionarLeitura("PPF", objLeitura);
+      //objComponente_TesteConexao_controller.AdicionarLeitura("PPF", objLeitura);
 
     }
   }
@@ -82,25 +82,45 @@ void ReiniciarDispositivo() {
 
 void setup() {
   // put your setup code here, to run once:
-  objDispositivo_controller.RefDispositivo_controller(&objDispositivo_controller);
-  objDispositivo_controller.RefDispositivo(&objDispositivo);
-  objDispositivo = objDispositivo_controller.Inicializar();
+  Serial.begin(115200);
+  Serial.println(F("Criando dispositivo"));
+  objDispositivo = Dispositivo("AmbSense Teste AmbSense 2", "TSTAMB2");
+  Serial.println(F("Criando lista de sensores"));
+  std::vector<Sensor> lstSensores = {
+    Sensor("PPF", "Percentual de Falha"),
+    Sensor("PTM", "Tempo Médio")
+  };
+  Serial.println(F("Adicionando sensores"));
+  objDispositivo.Sensores(lstSensores);
 
+  Serial.println(F("Adicionando ref controller"));
+  objDispositivo_controller.RefDispositivo_controller(&objDispositivo_controller);
+  
+  Serial.println(F("Adicionando ref dispositivo"));
+  objDispositivo_controller.RefDispositivo(&objDispositivo);
+  
+  Serial.println(F("Iniocializando dispositivo"));
+  objDispositivo = objDispositivo_controller.Inicializar();
+  
+  Serial.println(F("Criando request handlers"));
 
   objDispositivo_controller.CriarWebServerRequestHandler("/consultar", HTTP_GET, ConsultarDispositivo);
   objDispositivo_controller.CriarWebServerRequestHandler("/alterar", HTTP_POST, AlterarDispositivo);
   objDispositivo_controller.CriarWebServerRequestHandler("/reiniciar", HTTP_GET, ReiniciarDispositivo);
-
+  
+  Serial.println(F("Iniciando webserver"));
   objDispositivo_controller.IniciarWebServer();
-
+  
   // Cria o tratamento do web server no core 0
+  Serial.println(F("Criando loop 0"));
   xTaskCreatePinnedToCore(Loop_core0,"Loop_core0",10000,NULL,1,&tskLoop_core0,0);
 
-
+Serial.println(F("FIM SETUP"));
 }
 
 void Loop_core0(void* pvParameters){
   while (true) {
+    Serial.println(F("Loop 0"));
     objDispositivo_controller.ProcessarWebServerRequest();
     vTaskDelay(100);
   }
@@ -108,6 +128,7 @@ void Loop_core0(void* pvParameters){
 
 
 void loop() {
+  Serial.println(F("Loop 1"));
   // put your main code here, to run repeatedly:
   FazerLeituraSensores();
   delay(500);
