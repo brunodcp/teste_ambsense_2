@@ -10,6 +10,7 @@ Dispositivo objDispositivo;
 Dispositivo_controller objDispositivo_controller = Dispositivo_controller();
 
 unsigned long startMillisTestaConexao = 0;
+unsigned long datInicioDispositivo = 0;
 
 void FazerLeituraSensores() {
   Componente_TesteConexao_controller objComponente_TesteConexao_controller = Componente_TesteConexao_controller();
@@ -101,6 +102,8 @@ void setup() {
   
   Serial.println(F("Iniocializando dispositivo"));
   objDispositivo = objDispositivo_controller.Inicializar();
+
+  datInicioDispositivo = DataHora_utils::Agora();
   
   Serial.println(F("Criando request handlers"));
 
@@ -128,7 +131,7 @@ void Loop_core0(void* pvParameters){
 
 
 void loop() {
-  Serial.println(F("Loop 1"));
+  Serial.println(DataHora_utils::ConverterDataEpochParaStr(datInicioDispositivo));
   // put your main code here, to run repeatedly:
   FazerLeituraSensores();
   delay(500);
