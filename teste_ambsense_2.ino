@@ -74,19 +74,31 @@ void FazerLeituraSensores() {
   unsigned int intTempoMedicaoSensores = 1 * 250;  // 1seg
 
   Leitura objLeitura;
+  Leitura objUltLeitura;
   if (millis() - startMillisTestaConexao >= intTempoTesteConexao) {
     Serial.println(DataHora_utils::ConverterDataEpochParaStr(datInicioDispositivo));
     
     if (objComponente_TesteConexao_controller.RealizarTeste(3)) {
       startMillisTestaConexao = millis();
       objComponente_TesteConexao_controller.ExibirResultadoTesteConexao();
+      
       // PTM
-      objLeitura = Leitura(String(objComponente_TesteConexao_controller.TempoMedio()), DataHora_utils::Agora());
-      objDispositivo_controller.AdicionarLeitura("PTM", objLeitura);
+      objUltLeitura = objDispositivo_controller.UltimaLeitura("PTM");
+      if (Texto_utils::isFloat(objUltLeitura.Valor().c_str())){
+        if (fabs(atof(objUltLeitura.Valor().c_str()) - objComponente_TesteConexao_controller.TempoMedio()) > 3){
+          objLeitura = Leitura(String(objComponente_TesteConexao_controller.TempoMedio()), DataHora_utils::Agora());
+          objDispositivo_controller.AdicionarLeitura("PTM", objLeitura);
+        }
+      }
 
       // PPF
-      objLeitura = Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora());
-      objDispositivo_controller.AdicionarLeitura("PPF", objLeitura);
+      objUltLeitura = objDispositivo_controller.UltimaLeitura("PPF");
+      if (Texto_utils::isFloat(objUltLeitura.Valor().c_str())){
+        if (fabs(atof(objUltLeitura.Valor().c_str()) - objComponente_TesteConexao_controller.PercentFalha()) > 10){
+          objLeitura = Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora());
+          objDispositivo_controller.AdicionarLeitura("PPF", objLeitura);
+        }
+      }
       
       Serial.print(F("Total de leituras: "));
       Serial.println(objDispositivo.Sensores()[0].Leituras().size());
