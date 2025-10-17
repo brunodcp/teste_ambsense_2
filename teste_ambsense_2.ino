@@ -138,6 +138,8 @@ void TratarAlteracaoDispositivo(){
             lstControles[idxControles].Valor(lstControlesNovo[idxControlesNovo].Valor());
             lstControles[idxControles].AlteradoEm(DataHora_utils::Agora());
 
+            objDispositivo_controller.LedPrincipal(atoi(lstControlesNovo[idxControlesNovo].Valor().c_str()));
+
           }
           break;
         }
@@ -160,10 +162,15 @@ void setup() {
     Sensor("PTM", "Tempo Médio")
   };
   std::vector<Controle> lstControles = {
-    Controle("LED", "ON/OFF", "Liga desliga led", "OFF", DataHora_utils::Agora(),"")
+    Controle("LED", "ON/OFF", "Liga desliga led", "0", DataHora_utils::Agora(),"")
+  };
+  std::vector<Programa> lstProgramas = {
+    Programa("PG1", "Primeiro programa", 0, 30000, {}, {}, "", "http://192.168.0.1/")
   };
   objDispositivo.Sensores(lstSensores);
   objDispositivo.Controles(lstControles);
+  objDispositivo.Programas(lstProgramas);
+
   Serial.println(F("Adicionando ref dispositivo"));
   Dispositivo_controller::RefDispositivo(&objDispositivo);
 
@@ -172,7 +179,9 @@ void setup() {
   objDispositivo_controller.Inicializar();
 
   datInicioDispositivo = DataHora_utils::Agora();
-  
+  Serial.print("Dia da semana: ");
+  Serial.println(DataHora_utils::PegarDiaSemana(datInicioDispositivo));
+
   Serial.println(F("Criando request handlers"));
   objDispositivo_controller.CriarWebServerRequestHandler("/consultar_tempo_real", HTTP_GET, ConsultarTempoReal);
   
@@ -186,7 +195,7 @@ void setup() {
   CarregarPrimeiraLeitura();
 
   Serial.println(Dispositivo_controller::DebugMemoriaLivre());
-
+  objDispositivo_controller.LedPrincipal(0);
   Serial.println(F("FIM SETUP"));
 }
 
@@ -201,6 +210,8 @@ void Loop_core0(void* pvParameters){
 
 
 void loop() {
+  //Serial.println("Processar os programas do dispositivo");
+  objDispositivo_controller.ProcessarProgramas();
   //Serial.println("Processar a consulta do dispositivo");
   objDispositivo_controller.ProcessarConsultaDispositivo();
   //Serial.println("Tratar alteracao");
