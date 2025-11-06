@@ -14,39 +14,39 @@ unsigned long datInicioDispositivo = 0;
 
 void CarregarPrimeiraLeitura(){
 
-  std::vector<Sensor> lstSensores = objDispositivo.Sensores();
+  std::vector<Sensor>* lstSensores = objDispositivo.Sensores();
   Leitura objLeitura;
 
   objComponente_TesteConexao_controller.HostDestino("www.google.com");
 
   if (objComponente_TesteConexao_controller.RealizarTeste(3)) {
-    for (int idxSensores=0; idxSensores < lstSensores.size(); idxSensores++){
-      if(lstSensores[idxSensores].Codigo() == "PTM"){
-        lstSensores[idxSensores].Leituras({Leitura(String(objComponente_TesteConexao_controller.TempoMedio()), DataHora_utils::Agora())});
+    for (int idxSensores=0; idxSensores < lstSensores->size(); idxSensores++){
+      if(*lstSensores->at(idxSensores).Codigo() == "PTM"){
+         lstSensores->at(idxSensores).Leituras({Leitura(String(objComponente_TesteConexao_controller.TempoMedio()), DataHora_utils::Agora())});
       }
 
-      if(lstSensores[idxSensores].Codigo() == "PPF"){
-        lstSensores[idxSensores].Leituras({Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora())});
+      if(*lstSensores->at(idxSensores).Codigo() == "PPF"){
+         lstSensores->at(idxSensores).Leituras({Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora())});
       }
     }        
-    objDispositivo.Sensores(lstSensores);
+    //objDispositivo.Sensores(lstSensores);
   }
 }
 
 void ConsultarTempoReal(){
-  Dispositivo objDispositivoAux = objDispositivo; 
-  std::vector<Sensor> lstSensores = objDispositivoAux.Sensores();
+  Dispositivo objDispositivoAux = objDispositivo_controller.DispositivoComUltimaLeitura(); 
+  std::vector<Sensor>* lstSensores = objDispositivoAux.Sensores();
 
-  for (int idxSensores=0; idxSensores < lstSensores.size(); idxSensores++){
-    if(lstSensores[idxSensores].Codigo() == "PTM"){
-      lstSensores[idxSensores].Leituras({Leitura(String(objComponente_TesteConexao_controller.TempoMedio()), DataHora_utils::Agora())});
+  for (int idxSensores=0; idxSensores < lstSensores->size(); idxSensores++){
+    if(*lstSensores->at(idxSensores).Codigo() == "PTM"){
+       lstSensores->at(idxSensores).Leituras({Leitura(String(objComponente_TesteConexao_controller.TempoMedio()), DataHora_utils::Agora())});
     }
 
-    if(lstSensores[idxSensores].Codigo() == "PPF"){
-      lstSensores[idxSensores].Leituras({Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora())});
+    if(*lstSensores->at(idxSensores).Codigo() == "PPF"){
+       lstSensores->at(idxSensores).Leituras({Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora())});
     }
   }        
-  objDispositivoAux.Sensores(lstSensores);
+  //objDispositivoAux.Sensores(lstSensores);
 
   String strDispositivoJson = objDispositivoAux.ToJSON(); 
   
@@ -66,37 +66,50 @@ void FazerLeituraSensores() {
   Leitura objLeitura;
   Leitura objUltLeitura;
   if (millis() - startMillisTestaConexao >= intTempoTesteConexao) {
-    Serial.println(DataHora_utils::ConverterDataEpochParaStr(datInicioDispositivo));
     
     if (objComponente_TesteConexao_controller.RealizarTeste(3)) {
       startMillisTestaConexao = millis();
-      objComponente_TesteConexao_controller.ExibirResultadoTesteConexao();
+      //objComponente_TesteConexao_controller.ExibirResultadoTesteConexao();
       
       // PTM
       objUltLeitura = objDispositivo_controller.UltimaLeitura("PTM");
-      if (Texto_utils::isFloat(objUltLeitura.Valor().c_str())){
-        if (fabs(atof(objUltLeitura.Valor().c_str()) - objComponente_TesteConexao_controller.TempoMedio()) >= 3){
+      if (Texto_utils::isFloat(objUltLeitura.Valor()->c_str())){
+        if (fabs(atof(objUltLeitura.Valor()->c_str()) - objComponente_TesteConexao_controller.TempoMedio()) >= 3){
           objLeitura = Leitura(String(objComponente_TesteConexao_controller.TempoMedio()), DataHora_utils::Agora());
           objDispositivo_controller.AdicionarLeitura("PTM", objLeitura);
+
+          Serial.print(F("Total de leituras: "));
+          Serial.print(objDispositivo.Sensores()->at(0).Leituras()->size());
+          Serial.print(F(" - "));
+          Serial.print(objDispositivo.Sensores()->at(1).Leituras()->size());
+          Serial.print(F(" Total: "));
+          Serial.println(objDispositivo.Sensores()->at(0).Leituras()->size() + objDispositivo.Sensores()->at(1).Leituras()->size());
+
+          
+
         }
       }
 
       // PPF
       objUltLeitura = objDispositivo_controller.UltimaLeitura("PPF");
-      if (Texto_utils::isFloat(objUltLeitura.Valor().c_str())){
-        if (fabs(atof(objUltLeitura.Valor().c_str()) - objComponente_TesteConexao_controller.PercentFalha()) >= 10){
+      if (Texto_utils::isFloat(objUltLeitura.Valor()->c_str())){
+        if (fabs(atof(objUltLeitura.Valor()->c_str()) - objComponente_TesteConexao_controller.PercentFalha()) >= 10){
           objLeitura = Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora());
           objDispositivo_controller.AdicionarLeitura("PPF", objLeitura);
+
+          Serial.print(F("Total de leituras: "));
+          Serial.print(objDispositivo.Sensores()->at(0).Leituras()->size());
+          Serial.print(F(" - "));
+          Serial.print(objDispositivo.Sensores()->at(1).Leituras()->size());
+          Serial.print(F(" Total: "));
+          Serial.println(objDispositivo.Sensores()->at(0).Leituras()->size() + objDispositivo.Sensores()->at(1).Leituras()->size());
+
         }
       }
 
-      Serial.print(F("Total de leituras: "));
-      Serial.print(objDispositivo.Sensores()[0].Leituras().size());
-      Serial.print(F(" - "));
-      Serial.println(objDispositivo.Sensores()[1].Leituras().size());
-
-      Serial.println(F("No fim do processamento"));
-      Serial.println(Dispositivo_controller::DebugMemoriaLivre());
+      
+      //Serial.println(F("No fim do processamento"));
+      //Serial.println(Dispositivo_controller::DebugMemoriaLivre());
 
     }
   }
@@ -105,8 +118,8 @@ void FazerLeituraSensores() {
 void TratarAlteracaoDispositivo(){
   
   Dispositivo objDispositivoNovo;
-  std::vector<Controle> lstControles;
-  std::vector<Controle> lstControlesNovo;
+  std::vector<Controle>* lstControles;
+  std::vector<Controle>* lstControlesNovo;
 
   if (Dispositivo_controller::NovoDispositivoJson() != ""){
     Serial.println("Existe uma alteração no dispositivo!");
@@ -114,37 +127,37 @@ void TratarAlteracaoDispositivo(){
     objDispositivoNovo = objDispositivo_controller.CarregarDispositivoJson(Dispositivo_controller::NovoDispositivoJson());
     lstControlesNovo = objDispositivoNovo.Controles();
     lstControles = objDispositivo.Controles();
-    for (int idxControlesNovo=0;idxControlesNovo < lstControlesNovo.size(); idxControlesNovo++){
-      for (int idxControles=0;idxControles < lstControles.size(); idxControles++){
-        if (lstControlesNovo[idxControlesNovo].Codigo() == lstControles[idxControles].Codigo()){
+    for (int idxControlesNovo=0;idxControlesNovo < lstControlesNovo->size(); idxControlesNovo++){
+      for (int idxControles=0;idxControles < lstControles->size(); idxControles++){
+        if (*lstControlesNovo->at(idxControlesNovo).Codigo() == *lstControles->at(idxControles).Codigo()){
           
           Serial.print("Executa ação no sensor:");
-          Serial.println(lstControlesNovo[idxControlesNovo].Codigo());
+          Serial.println(*lstControlesNovo->at(idxControlesNovo).Codigo());
           Serial.print(" Data atual : ");
-          Serial.print(DataHora_utils::ConverterDataEpochParaStr(lstControles[idxControles].AlteradoEm()));
+          Serial.print(DataHora_utils::ConverterDataEpochParaStr(*lstControles->at(idxControles).AlteradoEm()));
           Serial.print(" Data novo : ");
-          Serial.print(lstControlesNovo[idxControlesNovo].AlteradoEm());
+          Serial.print(*lstControlesNovo->at(idxControlesNovo).AlteradoEm());
           Serial.print(" - ");
-          Serial.println(DataHora_utils::ConverterDataEpochParaStr(lstControlesNovo[idxControlesNovo].AlteradoEm()));
+          Serial.println(DataHora_utils::ConverterDataEpochParaStr(*lstControlesNovo->at(idxControlesNovo).AlteradoEm()));
             
 
-          if (lstControlesNovo[idxControlesNovo].AlteradoEm() > lstControles[idxControles].AlteradoEm() ){
+          if (*lstControlesNovo->at(idxControlesNovo).AlteradoEm() > *lstControles->at(idxControles).AlteradoEm() ){
             
             Serial.print("Valor atual : ");
-            Serial.println(lstControles[idxControles].Valor());
+            Serial.println(*lstControles->at(idxControles).Valor());
             Serial.print("Valor novo : ");
-            Serial.println(lstControlesNovo[idxControlesNovo].Valor());
+            Serial.println(*lstControlesNovo->at(idxControlesNovo).Valor());
             
-            lstControles[idxControles].Valor(lstControlesNovo[idxControlesNovo].Valor());
-            lstControles[idxControles].AlteradoEm(DataHora_utils::Agora());
+            lstControles->at(idxControles).Valor(*lstControlesNovo->at(idxControlesNovo).Valor());
+            lstControles->at(idxControles).AlteradoEm(DataHora_utils::Agora());
 
-            objDispositivo_controller.LedPrincipal(atoi(lstControlesNovo[idxControlesNovo].Valor().c_str()));
+            objDispositivo_controller.LedPrincipal(atoi(lstControlesNovo->at(idxControlesNovo).Valor()->c_str()));
 
           }
           break;
         }
       }  
-      objDispositivo.Controles(lstControles);
+      //objDispositivo.Controles(lstControles);
     }
     Dispositivo_controller::NovoDispositivoJson("");
   }
@@ -165,7 +178,7 @@ void setup() {
     Controle("LED", "ON/OFF", "Liga desliga led", "0", DataHora_utils::Agora(),"")
   };
   std::vector<Programa> lstProgramas = {
-    Programa("PG1", "Primeiro programa", 0, 30000, {}, {}, "", "http://192.168.0.1/")
+    Programa("PG1", "Primeiro programa", true, 0, 30, {}, {}, "", "Trocar Led", "http://127.0.0.1/controle/trocar_led")
   };
   objDispositivo.Sensores(lstSensores);
   objDispositivo.Controles(lstControles);
@@ -184,9 +197,15 @@ void setup() {
 
   Serial.println(F("Criando request handlers"));
   objDispositivo_controller.CriarWebServerRequestHandler("/consultar_tempo_real", HTTP_GET, ConsultarTempoReal);
+  objDispositivo_controller.CriarWebServerRequestHandler("CONTROLE", "Ligar led","/controle/ligar_led", HTTP_GET, LigarLed);
+  objDispositivo_controller.CriarWebServerRequestHandler("CONTROLE", "Desligar led","/controle/desligar_led", HTTP_GET, DesligarLed);
+  objDispositivo_controller.CriarWebServerRequestHandler("CONTROLE", "Trocar led","/controle/trocar_led", HTTP_GET, TrocarLed);
+  objDispositivo_controller.CriarWebServerRequestHandler("SENSOR", "Status Led","/sensor/status_led", HTTP_GET, StatusLed);
   
   Serial.println(F("Iniciando webserver"));
   objDispositivo_controller.IniciarWebServer();
+
+    
   
   // Cria o tratamento do web server no core 0
   Serial.println(F("Criando loop 0"));
@@ -196,20 +215,63 @@ void setup() {
 
   Serial.println(Dispositivo_controller::DebugMemoriaLivre());
   objDispositivo_controller.LedPrincipal(0);
-  Serial.println(F("FIM SETUP"));
+  
+  Serial.println(DataHora_utils::ConverterDataEpochParaStr(datInicioDispositivo));
+  Serial.println(*objDispositivo.IpLocal());
+  Serial.println(F("--- FIM SETUP ---"));
 }
-
 
 void Loop_core0(void* pvParameters){
   while (true) {
-    //Serial.println(F("Loop 0"));
+    //Serial.print(F("Loop 0 - "));
     objDispositivo_controller.ProcessarWebServerRequest();
-    vTaskDelay(100);
+    
+    vTaskDelay(500);
   }
 }
 
+void LigarLed(){
+  objDispositivo_controller.LedPrincipal(1);
+  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", "AMBSENSE_OK");
+  
+}
 
+void DesligarLed(){
+  objDispositivo_controller.LedPrincipal(0);
+  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", "AMBSENSE_OK");
+}
+
+
+void TrocarLed(){
+  objDispositivo_controller.TrocarStatusLedPrincipal();
+  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", "AMBSENSE_OK");
+}
+
+void StatusLed(){
+  String strResultado = "";
+  if(objDispositivo_controller.LedPrincipal()){
+    strResultado = R"({"LED" : "ON" })";
+  } else {
+    strResultado = R"({"LED" : "OFF" })";
+  }
+  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", strResultado);
+}
+
+
+unsigned long lngTimerInfo = millis();
 void loop() {
+
+  if (millis() - lngTimerInfo > 10000 ) {
+    lngTimerInfo = millis();
+    Serial.print("*************************** Inicio: ");
+    Serial.print(DataHora_utils::Agora(0));
+    Serial.print(" - ");
+    Serial.print(DataHora_utils::ConverterDataEpochParaStr(datInicioDispositivo));
+    Serial.print(" - ");
+    Serial.print(*objDispositivo.IpLocal());
+    Serial.println();
+  }
+  
   //Serial.println("Processar os programas do dispositivo");
   objDispositivo_controller.ProcessarProgramas();
   //Serial.println("Processar a consulta do dispositivo");
@@ -219,6 +281,7 @@ void loop() {
   //Serial.println("Fazer leituras");
   FazerLeituraSensores();
   //Serial.println("delay");
-  delay(100);
+  //delay(100);
+  vTaskDelay(10);
 
 }
