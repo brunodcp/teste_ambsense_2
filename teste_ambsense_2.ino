@@ -124,7 +124,7 @@ void TratarAlteracaoDispositivo(){
   if (Dispositivo_controller::NovoDispositivoJson() != ""){
     Serial.println("Existe uma alteração no dispositivo!");
     Serial.println(Dispositivo_controller::NovoDispositivoJson());
-    objDispositivoNovo = objDispositivo_controller.CarregarDispositivoJson(Dispositivo_controller::NovoDispositivoJson());
+    objDispositivoNovo = objDispositivo_controller.CarregarJson(Dispositivo_controller::NovoDispositivoJson());
     lstControlesNovo = objDispositivoNovo.Controles();
     lstControles = objDispositivo.Controles();
     for (int idxControlesNovo=0;idxControlesNovo < lstControlesNovo->size(); idxControlesNovo++){
@@ -178,7 +178,7 @@ void setup() {
     Controle("LED", "ON/OFF", "Liga desliga led", "0", DataHora_utils::Agora(),"")
   };
   std::vector<Programa> lstProgramas = {
-    Programa("PG1", "Primeiro programa", true, 0, 30, {}, {}, "", "Trocar Led", "http://127.0.0.1/controle/trocar_led")
+    Programa("PG1", "Primeiro programa", true, 0, 30, {}, {}, "", "Trocar Led", "http://127.0.0.1/controle/trocar_led", {})
   };
   objDispositivo.Sensores(lstSensores);
   objDispositivo.Controles(lstControles);
@@ -274,8 +274,6 @@ void loop() {
   
   //Serial.println("Processar os programas do dispositivo");
   objDispositivo_controller.ProcessarProgramas();
-  //Serial.println("Processar a consulta do dispositivo");
-  objDispositivo_controller.ProcessarConsultaDispositivo();
   //Serial.println("Tratar alteracao");
   TratarAlteracaoDispositivo();
   //Serial.println("Fazer leituras");
