@@ -33,7 +33,7 @@ void CarregarPrimeiraLeitura(){
   }
 }
 
-void ConsultarTempoReal(){
+void GetDispositivo(){
   Dispositivo objDispositivoAux = objDispositivo_controller.DispositivoComUltimaLeitura(); 
   std::vector<Sensor>* lstSensores = objDispositivoAux.Sensores();
 
@@ -175,10 +175,10 @@ void setup() {
     Sensor("PTM", "Tempo Médio")
   };
   std::vector<Controle> lstControles = {
-    Controle("LED", "ON/OFF", "Liga desliga led", "0", DataHora_utils::Agora(),"")
+    Controle("ONOFFLED", "ON/OFF", "Liga desliga led", "0", DataHora_utils::Agora(),"")
   };
   std::vector<Programa> lstProgramas = {
-    Programa("PG1", "Primeiro programa", true, 0, 30, {}, {}, "", "Trocar Led", "http://127.0.0.1/controle/trocar_led", {})
+    Programa("PG1", "Primeiro programa", true, 0, 30, {}, {}, false, false, "", "Trocar Led", "http://127.0.0.1/controle/trocar_led", {})
   };
   objDispositivo.Sensores(lstSensores);
   objDispositivo.Controles(lstControles);
@@ -196,7 +196,7 @@ void setup() {
   Serial.println(DataHora_utils::PegarDiaSemana(datInicioDispositivo));
 
   Serial.println(F("Criando request handlers"));
-  objDispositivo_controller.CriarWebServerRequestHandler("/consultar_tempo_real", HTTP_GET, ConsultarTempoReal);
+  objDispositivo_controller.CriarWebServerRequestHandler("/dispositivo", HTTP_GET, GetDispositivo);
   objDispositivo_controller.CriarWebServerRequestHandler("CONTROLE", "Ligar led","/controle/ligar_led", HTTP_GET, LigarLed);
   objDispositivo_controller.CriarWebServerRequestHandler("CONTROLE", "Desligar led","/controle/desligar_led", HTTP_GET, DesligarLed);
   objDispositivo_controller.CriarWebServerRequestHandler("CONTROLE", "Trocar led","/controle/trocar_led", HTTP_GET, TrocarLed);
@@ -223,10 +223,10 @@ void setup() {
 
 void Loop_core0(void* pvParameters){
   while (true) {
+    vTaskDelay(100);
     //Serial.print(F("Loop 0 - "));
     objDispositivo_controller.ProcessarWebServerRequest();
     
-    vTaskDelay(500);
   }
 }
 
@@ -250,9 +250,9 @@ void TrocarLed(){
 void StatusLed(){
   String strResultado = "";
   if(objDispositivo_controller.LedPrincipal()){
-    strResultado = R"({"LED" : "ON" })";
+    strResultado = R"({"VALOR" : "ON" })";
   } else {
-    strResultado = R"({"LED" : "OFF" })";
+    strResultado = R"({"VALOR" : "OFF" })";
   }
   WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", strResultado);
 }
