@@ -150,9 +150,10 @@ void TratarAlteracaoDispositivo(){
             
             lstControles->at(idxControles).Valor(*lstControlesNovo->at(idxControlesNovo).Valor());
             lstControles->at(idxControles).AlteradoEm(DataHora_utils::Agora());
-
-            objDispositivo_controller.LedPrincipal(atoi(lstControlesNovo->at(idxControlesNovo).Valor()->c_str()));
-
+            
+            if (*lstControlesNovo->at(idxControlesNovo).Tipo() == "ONOFF"){
+              objDispositivo_controller.LedPrincipal(Texto_utils::toBoolean(*lstControlesNovo->at(idxControlesNovo).Valor()));
+            }
           }
           break;
         }
@@ -160,6 +161,7 @@ void TratarAlteracaoDispositivo(){
       //objDispositivo.Controles(lstControles);
     }
     Dispositivo_controller::NovoDispositivoJson("");
+    Dispositivo_controller::SalvarDispositivo();
   }
 }
 
@@ -175,7 +177,7 @@ void setup() {
     Sensor("PTM", "Tempo Médio")
   };
   std::vector<Controle> lstControles = {
-    Controle("ONOFFLED", "ON/OFF", "Liga desliga led", "0", DataHora_utils::Agora(),"")
+    Controle("ONOFF", "ONOFF", "Liga desliga led", "0", DataHora_utils::Agora(),"controle/trocar_led")
   };
   std::vector<Programa> lstProgramas = {
     Programa("PG1", "Primeiro programa", true, 0, 30, {}, {}, false, false, "", "Trocar Led", "http://127.0.0.1/controle/trocar_led", {})
@@ -231,20 +233,29 @@ void Loop_core0(void* pvParameters){
 }
 
 void LigarLed(){
-  objDispositivo_controller.LedPrincipal(1);
-  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", "AMBSENSE_OK");
+  objDispositivo_controller.LedPrincipal(true);
+  objDispositivo_controller.AlterarControle("ONOFF", "true");
+  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8",  R"({"resultado":"AMBSENSE_OK", "mensagem":"Controle alterado com sucesso"})");
   
 }
 
 void DesligarLed(){
-  objDispositivo_controller.LedPrincipal(0);
-  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", "AMBSENSE_OK");
+  objDispositivo_controller.LedPrincipal(false);
+  objDispositivo_controller.AlterarControle("ONOFF", "false");
+  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8",  R"({"resultado":"AMBSENSE_OK", "mensagem":"Controle alterado com sucesso"})");
 }
 
 
 void TrocarLed(){
   objDispositivo_controller.TrocarStatusLedPrincipal();
-  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", "AMBSENSE_OK");
+  if (objDispositivo_controller.LedPrincipal()){
+    objDispositivo_controller.AlterarControle("ONOFF", "true");
+    Serial.println("Trocou para true");
+  } else {
+    objDispositivo_controller.AlterarControle("ONOFF", "false");
+    Serial.println("Trocou para false");
+  }
+  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8",  R"({"resultado":"AMBSENSE_OK", "mensagem":"Controle alterado com sucesso"})");
 }
 
 void StatusLed(){
@@ -263,11 +274,13 @@ void loop() {
 
   if (millis() - lngTimerInfo > 10000 ) {
     lngTimerInfo = millis();
-    Serial.print("*************************** Inicio: ");
-    Serial.print(DataHora_utils::Agora(0));
-    Serial.print(" - ");
+    Serial.print("*************************** Hora definida: ");
+    Serial.print(DataHora_utils::DataHoraDefinida());
+    Serial.print(" - Inicio: ");
     Serial.print(DataHora_utils::ConverterDataEpochParaStr(datInicioDispositivo));
-    Serial.print(" - ");
+    Serial.print(" - Agora: ");
+    Serial.print(DataHora_utils::Agora(0));
+    Serial.print(" - IP: ");
     Serial.print(*objDispositivo.IpLocal());
     Serial.println();
   }
