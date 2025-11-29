@@ -22,11 +22,11 @@ void CarregarPrimeiraLeitura(){
   if (objComponente_TesteConexao_controller.RealizarTeste(3)) {
     for (int idxSensores=0; idxSensores < lstSensores->size(); idxSensores++){
       if(*lstSensores->at(idxSensores).Codigo() == "PTM"){
-         lstSensores->at(idxSensores).Leituras({Leitura(String(objComponente_TesteConexao_controller.TempoMedio()), DataHora_utils::Agora())});
+         lstSensores->at(idxSensores).Leituras()->push_back({Leitura(String(objComponente_TesteConexao_controller.TempoMedio()), DataHora_utils::Agora())});
       }
 
       if(*lstSensores->at(idxSensores).Codigo() == "PPF"){
-         lstSensores->at(idxSensores).Leituras({Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora())});
+         lstSensores->at(idxSensores).Leituras()->push_back({Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora())});
       }
     }        
     //objDispositivo.Sensores(lstSensores);
@@ -34,6 +34,7 @@ void CarregarPrimeiraLeitura(){
 }
 
 void GetDispositivo(){
+  Serial.println("Chamou GetDispositivo");
   Dispositivo objDispositivoAux = objDispositivo_controller.DispositivoComUltimaLeitura(); 
   std::vector<Sensor>* lstSensores = objDispositivoAux.Sensores();
 
@@ -46,8 +47,7 @@ void GetDispositivo(){
        lstSensores->at(idxSensores).Leituras({Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora())});
     }
   }        
-  //objDispositivoAux.Sensores(lstSensores);
-
+  Serial.println("Montou sensores com leitura");
   String strDispositivoJson = objDispositivoAux.ToJSON(); 
   
   Serial.println(F("Vai enviar o response tamanho: "));
@@ -58,7 +58,7 @@ void GetDispositivo(){
 }
 
 
-void FazerLeituraSensores() {
+void LerSensores() {
   
   unsigned int intTempoTesteConexao = 5 * 1000;  // 5 segs
   unsigned int intTempoMedicaoSensores = 1 * 250;  // 1seg
@@ -74,7 +74,7 @@ void FazerLeituraSensores() {
       // PTM
       objUltLeitura = objDispositivo_controller.UltimaLeitura("PTM");
       if (Texto_utils::isFloat(objUltLeitura.Valor()->c_str())){
-        if (fabs(atof(objUltLeitura.Valor()->c_str()) - objComponente_TesteConexao_controller.TempoMedio()) >= 3){
+        if (fabs(atof(objUltLeitura.Valor()->c_str()) - objComponente_TesteConexao_controller.TempoMedio()) >= 3 || true){
           objLeitura = Leitura(String(objComponente_TesteConexao_controller.TempoMedio()), DataHora_utils::Agora());
           objDispositivo_controller.AdicionarLeitura("PTM", objLeitura);
 
@@ -85,15 +85,13 @@ void FazerLeituraSensores() {
           Serial.print(F(" Total: "));
           Serial.println(objDispositivo.Sensores()->at(0).Leituras()->size() + objDispositivo.Sensores()->at(1).Leituras()->size());
 
-          
-
         }
       }
 
       // PPF
       objUltLeitura = objDispositivo_controller.UltimaLeitura("PPF");
       if (Texto_utils::isFloat(objUltLeitura.Valor()->c_str())){
-        if (fabs(atof(objUltLeitura.Valor()->c_str()) - objComponente_TesteConexao_controller.PercentFalha()) >= 10){
+        if (fabs(atof(objUltLeitura.Valor()->c_str()) - objComponente_TesteConexao_controller.PercentFalha()) >= 10 || true){
           objLeitura = Leitura(String(objComponente_TesteConexao_controller.PercentFalha()), DataHora_utils::Agora());
           objDispositivo_controller.AdicionarLeitura("PPF", objLeitura);
 
@@ -171,27 +169,40 @@ void setup() {
   Serial.begin(115200);
 
   Serial.println(F("Criando dispositivo padrão"));
-  objDispositivo = Dispositivo("AmbSense Teste AmbSense 2", "TSTAMB2");
-  std::vector<Sensor> lstSensores = {
-    Sensor("PPF", "Percentual de Falha"),
-    Sensor("PTM", "Tempo Médio")
-  };
-  std::vector<Controle> lstControles = {
-    Controle("ONOFF", "ONOFF", "Liga desliga led", "0", DataHora_utils::Agora(),"controle/trocar_led")
-  };
-  std::vector<Programa> lstProgramas = {
-    Programa("PG1", "Primeiro programa", true, 0, 30, {}, {}, false, false, "", "Trocar Led", "http://127.0.0.1/controle/trocar_led", {})
-  };
-  objDispositivo.Sensores(lstSensores);
-  objDispositivo.Controles(lstControles);
-  objDispositivo.Programas(lstProgramas);
-
+  
   Serial.println(F("Adicionando ref dispositivo"));
   Dispositivo_controller::RefDispositivo(&objDispositivo);
+
+  // Se não carregar um dispositivo da memória carrega o dispositivo padrão
+  if (!objDispositivo_controller.CarregarDispositivo()){
+    objDispositivo = Dispositivo("AmbSense Teste AmbSense 2", "TSTAMB2");
+
+    std::vector<Sensor> lstSensores = {
+      Sensor("PPF", "Percentual de Falha"),
+      Sensor("PTM", "Tempo Médio")
+    };
+    std::vector<Controle> lstControles = {
+      Controle("ONOFF", "ONOFF", "Liga desliga led", "0", DataHora_utils::Agora(),"controle/trocar_led")
+    };
+    std::vector<Programa> lstProgramas = {
+      Programa("PG1", "Primeiro programa", true, 0, 1800, {}, {}, false, false, "", "Trocar Led", "http://127.0.0.1/controle/trocar_led", {})
+    };
+    objDispositivo.Sensores(lstSensores);
+    objDispositivo.Controles(lstControles);
+    objDispositivo.Programas(lstProgramas);
+  }
 
   Serial.println(F("Inicializando dispositivo"));
   objDispositivo_controller.MaxLeiturasSensor(1000);
   objDispositivo_controller.Inicializar();
+
+  Serial.print(F("Total de leituras: "));
+  Serial.print(objDispositivo.Sensores()->at(0).Leituras()->size());
+  Serial.print(F(" - "));
+  Serial.print(objDispositivo.Sensores()->at(1).Leituras()->size());
+  Serial.print(F(" Total: "));
+  Serial.println(objDispositivo.Sensores()->at(0).Leituras()->size() + objDispositivo.Sensores()->at(1).Leituras()->size());
+
 
   datInicioDispositivo = DataHora_utils::Agora();
   Serial.print("Dia da semana: ");
@@ -206,8 +217,6 @@ void setup() {
   
   Serial.println(F("Iniciando webserver"));
   objDispositivo_controller.IniciarWebServer();
-
-    
   
   // Cria o tratamento do web server no core 0
   Serial.println(F("Criando loop 0"));
@@ -225,9 +234,10 @@ void setup() {
 
 void Loop_core0(void* pvParameters){
   while (true) {
-    vTaskDelay(100);
     //Serial.print(F("Loop 0 - "));
     objDispositivo_controller.ProcessarWebServerRequest();
+    
+    vTaskDelay(100);
     
   }
 }
@@ -255,6 +265,7 @@ void TrocarLed(){
     objDispositivo_controller.AlterarControle("ONOFF", "false");
     Serial.println("Trocou para false");
   }
+  Dispositivo_controller::SalvarDispositivo();
   WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8",  R"({"resultado":"AMBSENSE_OK", "mensagem":"Controle alterado com sucesso"})");
 }
 
@@ -290,7 +301,7 @@ void loop() {
   //Serial.println("Tratar alteracao");
   TratarAlteracaoDispositivo();
   //Serial.println("Fazer leituras");
-  FazerLeituraSensores();
+  LerSensores();
   //Serial.println("delay");
   //delay(100);
   vTaskDelay(10);
