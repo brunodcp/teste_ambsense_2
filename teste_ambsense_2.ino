@@ -1,5 +1,3 @@
-
-//MODEL
 #include <AmbSense.h>
 #include <Componente_TesteConexao_controller.h>
 
@@ -104,7 +102,6 @@ void LerSensores() {
 
         }
       }
-
       
       //Serial.println(F("No fim do processamento"));
       //Serial.println(Dispositivo_controller::DebugMemoriaLivre());
