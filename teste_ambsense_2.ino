@@ -65,57 +65,6 @@ void LerSensores() {
     }
   }
 }
-
-void TratarAlteracaoDispositivo() {
-
-  Dispositivo objDispositivoNovo;
-  std::vector<Controle>* lstControles;
-  std::vector<Controle>* lstControlesNovo;
-
-  if (Dispositivo_controller::NovoDispositivoJson() != "") {
-    Serial.println("Existe uma alteração no dispositivo!");
-    Serial.println(Dispositivo_controller::NovoDispositivoJson());
-    objDispositivoNovo = objDispositivo_controller.CarregarJson(Dispositivo_controller::NovoDispositivoJson());
-    lstControlesNovo = objDispositivoNovo.Controles();
-    lstControles = objDispositivo.Controles();
-    for (int idxControlesNovo = 0; idxControlesNovo < lstControlesNovo->size(); idxControlesNovo++) {
-      for (int idxControles = 0; idxControles < lstControles->size(); idxControles++) {
-        if (*lstControlesNovo->at(idxControlesNovo).Codigo() == *lstControles->at(idxControles).Codigo()) {
-
-          Serial.print("Executa ação no sensor:");
-          Serial.println(*lstControlesNovo->at(idxControlesNovo).Codigo());
-          Serial.print(" Data atual : ");
-          Serial.print(DataHora_utils::ConverterDataEpochParaStr(*lstControles->at(idxControles).AlteradoEm()));
-          Serial.print(" Data novo : ");
-          Serial.print(*lstControlesNovo->at(idxControlesNovo).AlteradoEm());
-          Serial.print(" - ");
-          Serial.println(DataHora_utils::ConverterDataEpochParaStr(*lstControlesNovo->at(idxControlesNovo).AlteradoEm()));
-
-
-          if (*lstControlesNovo->at(idxControlesNovo).AlteradoEm() > *lstControles->at(idxControles).AlteradoEm()) {
-
-            Serial.print("Valor atual : ");
-            Serial.println(*lstControles->at(idxControles).Valor());
-            Serial.print("Valor novo : ");
-            Serial.println(*lstControlesNovo->at(idxControlesNovo).Valor());
-
-            lstControles->at(idxControles).Valor(*lstControlesNovo->at(idxControlesNovo).Valor());
-            lstControles->at(idxControles).AlteradoEm(DataHora_utils::Agora());
-
-            if (*lstControlesNovo->at(idxControlesNovo).Tipo() == "ONOFF") {
-              objDispositivo_controller.LedPrincipal(Texto_utils::toBoolean(*lstControlesNovo->at(idxControlesNovo).Valor()));
-            }
-          }
-          break;
-        }
-      }
-      //objDispositivo.Controles(lstControles);
-    }
-    Dispositivo_controller::NovoDispositivoJson("");
-    Dispositivo_controller::SalvarDispositivo();
-  }
-}
-
 /******************************************************* Controles e Sensores *******************************************************/
 
 
@@ -131,6 +80,10 @@ void DesligarLed() {
   WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", R"({"resultado":"AMBSENSE_OK", "mensagem":"Controle alterado com sucesso"})");
 }
 
+void ControlarLed(Controle *objControle){
+  Serial.println(">>>>>>>>>>>>>>>>>>>>>> Chamou Callback ControlarLed");
+  objDispositivo_controller.LedPrincipal(Texto_utils::toBoolean(*objControle->Valor()));
+}
 
 void TrocarLed() {
 
@@ -177,7 +130,7 @@ void setup() {
     Sensor("PTM", "Tempo Médio")
   };
   std::vector<Controle> lstControles = {
-    Controle("ONOFF", "ONOFF", "Liga desliga led", "0", DataHora_utils::Agora(), "controle/trocar_led")
+    Controle("ONOFF", "ONOFF", "Liga desliga led", "0", DataHora_utils::Agora(), "controle/trocar_led", ControlarLed)
   };
   std::vector<Programa> lstProgramas = {
     Programa("PG1", "Primeiro programa", true, 0, 1800, {}, {}, false, false, {}, "Trocar Led", "http://127.0.0.1/controle/trocar_led", {})
@@ -189,14 +142,6 @@ void setup() {
   Serial.println(F("Inicializando dispositivo"));
   objDispositivo_controller.MaxLeiturasSensor(1000);
   objDispositivo_controller.Inicializar(objDispositivo);
-
-  Serial.print(F("Total de leituras: "));
-  Serial.print(objDispositivo.Sensores()->at(0).Leituras()->size());
-  Serial.print(F(" - "));
-  Serial.print(objDispositivo.Sensores()->at(1).Leituras()->size());
-  Serial.print(F(" Total: "));
-  Serial.println(objDispositivo.Sensores()->at(0).Leituras()->size() + objDispositivo.Sensores()->at(1).Leituras()->size());
-
 
   datInicioDispositivo = DataHora_utils::Agora();
   Serial.print("Dia da semana: ");
@@ -219,18 +164,17 @@ void setup() {
   xTaskCreatePinnedToCore(Loop_core0, "Loop_core0", 10000, NULL, 1, &tskLoop_core0, 0);
 
   Serial.println(Dispositivo_controller::DebugMemoriaLivre());
-  objDispositivo_controller.LedPrincipal(0);
-
+  
   Serial.println(DataHora_utils::ConverterDataEpochParaStr(datInicioDispositivo));
   Serial.println(*objDispositivo.IpLocal());
   Serial.println(F("--- FIM SETUP ---"));
+
 }
 
 void Loop_core0(void* pvParameters) {
   while (true) {
     //Serial.print(F("Loop 0 - "));
     objDispositivo_controller.ProcessarWebServerRequest();
-
     vTaskDelay(1);
   }
 }
@@ -253,7 +197,7 @@ void loop() {
   //Serial.println("Fazer leituras");
   LerSensores();
   //Serial.println("Tratar alteracao");
-  TratarAlteracaoDispositivo();
+  objDispositivo_controller.TratarAlteracaoDispositivo();
   //Serial.println("Processar os programas do dispositivo");
   objDispositivo_controller.ProcessarProgramas();
   
