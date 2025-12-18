@@ -65,8 +65,8 @@ void LerSensores() {
     }
   }
 }
-/******************************************************* Controles e Sensores *******************************************************/
 
+/******************************************************* Controles e Sensores *******************************************************/
 
 void LigarLed() {
   objDispositivo_controller.LedPrincipal(true);
@@ -110,19 +110,26 @@ void StatusLed() {
   WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", strResultado);
 }
 
+void PingTempoMedio() {
+  String strResultado = "";
+  Leitura objUltLeitura = objDispositivo_controller.UltimaLeitura("PTM");
+  strResultado = *objUltLeitura.Valor();
+  WebServer_utils::EnviarWebServerResponse(200, "application/json; charset=utf-8", strResultado);
+}
+
 /*************************************************************************************************************************************/
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
 
-  Serial.println(F("Criando dispositivo padrão"));
 
   Serial.println(F("Adicionando ref dispositivo"));
   Dispositivo_controller::RefDispositivo(&objDispositivo);
 
   // Se não carregar um dispositivo da memória carrega o dispositivo padrão
-  
+  Serial.println(F("Criando dispositivo padrão"));
+
   objDispositivo = Dispositivo("AmbSense Teste AmbSense 2", "TSTAMB2");
 
   std::vector<Sensor> lstSensores = {
@@ -143,6 +150,9 @@ void setup() {
   objDispositivo_controller.MaxLeiturasSensor(1000);
   objDispositivo_controller.Inicializar(objDispositivo);
 
+  Serial.print("MAC Addr_1: ");
+  Serial.println(*objDispositivo.SerialNum());
+
   datInicioDispositivo = DataHora_utils::Agora();
   Serial.print("Dia da semana: ");
   Serial.println(DataHora_utils::PegarDiaSemana(datInicioDispositivo));
@@ -155,6 +165,7 @@ void setup() {
   objDispositivo_controller.CriarWebServerRequestHandler("CONTROLE", "Desligar led", "/controle/desligar_led", HTTP_GET, DesligarLed);
   objDispositivo_controller.CriarWebServerRequestHandler("CONTROLE", "Trocar led", "/controle/trocar_led", HTTP_GET, TrocarLed);
   objDispositivo_controller.CriarWebServerRequestHandler("SENSOR", "Status Led", "/sensor/status_led", HTTP_GET, StatusLed);
+  objDispositivo_controller.CriarWebServerRequestHandler("SENSOR", "Tempo medio do ping", "/sensor/ping_tempo_medio", HTTP_GET, PingTempoMedio);
 
   Serial.println(F("Iniciando webserver"));
   objDispositivo_controller.IniciarWebServer();
@@ -167,6 +178,11 @@ void setup() {
   
   Serial.println(DataHora_utils::ConverterDataEpochParaStr(datInicioDispositivo));
   Serial.println(*objDispositivo.IpLocal());
+
+  Serial.print("MAC Addr_2: ");
+  Serial.println(*objDispositivo.SerialNum());
+
+
   Serial.println(F("--- FIM SETUP ---"));
 
 }
@@ -192,14 +208,16 @@ void loop() {
     Serial.print(DataHora_utils::Agora(0));
     Serial.print(" - IP: ");
     Serial.print(*objDispositivo.IpLocal());
+    Serial.print("- MAC Addr_loop: ");
+    Serial.print(*objDispositivo.SerialNum());
     Serial.println();
   }
   //Serial.println("Fazer leituras");
   LerSensores();
-  //Serial.println("Tratar alteracao");
-  objDispositivo_controller.TratarAlteracaoDispositivo();
   //Serial.println("Processar os programas do dispositivo");
   objDispositivo_controller.ProcessarProgramas();
-  
+  //Serial.println("Tratar alteracao");
+  objDispositivo_controller.TratarAlteracaoDispositivo();
+
   vTaskDelay(1);
 }
